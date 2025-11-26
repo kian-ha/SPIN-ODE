@@ -25,7 +25,7 @@ class Stoichiometry(eqx.Module):
         self.RO2_K_IDX = jnp.asarray(RO2_K_IDX, dtype=jnp.int32)
 
 
-# Reaction rate law ============================================================
+# Reaction rate law =========================================================
 
 def power_rate_law(
         y: jax.Array,
