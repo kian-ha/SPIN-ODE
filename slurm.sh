@@ -27,9 +27,9 @@ source jax_env/bin/activate
 
 # proposed approach
 ## step 1: train MLP to fit nODE traj
-python train_ode.py --config configs/spin.yaml --target rober_fit
+#python train_ode.py --config configs/spin.yaml --target rober_fit
 # python train_ode.py --config configs/spin.yaml --target pollu_fit
-# python train_ode.py --config configs/spin.yaml --target toy_fit
+ python train_ode.py --config configs/spin.yaml --target toy_fit
 
 ## step 2: train CRNN with deriv from interpolated traj inferenced by MLP
 # python train_coll.py --config configs/spin.yaml --target rober_coll
