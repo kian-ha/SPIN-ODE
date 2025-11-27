@@ -1,21 +1,14 @@
 #!/bin/bash
-#SBATCH --job-name=SPIN_ODE
-#SBATCH --output=soutput/SPIN_ODE/%j.out
-#SBATCH --account=project_2009907
-#SBATCH --partition=gputest
-#SBATCH --time=00:15:00
-#SBATCH --ntasks=1
+#SBATCH -J neural_ode_rhs_test # Name of the job
+#SBATCH -t 24:00:00 # Duration
+#SBATCH -n 1 # Number of tasks
+#SBATCH --mem=64G
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=kian.hajireza@ri.se
+#SBATCH -A EUHPC_D21_054 # Account number
+#SBATCH -p boost_usr_prod # Partition
+#SBATCH --qos normal # Queue - check Leonardo docs for other alternatives
 
-#SBATCH --cpus-per-task=16
-#SBATCH --gres=gpu:a100:1
-
-##SBATCH --cpus-per-task=4
-##SBATCH --gres=gpu:a100_1g.5gb:1
-
-
-## if local fast disk on a node is also needed, replace above line with:
-##SBATCH --gres=gpu:a100:1,nvme:900
-#
 ## Please remember to load the environment your application may need.
 ## And use the variable $LOCAL_SCRATCH in your batch job script 
 ## to access the local fast storage on each node.
@@ -25,14 +18,16 @@ cat $0
 echo "==================================="
 
 # TODO: setup python environment
-# module load jax
-# source venv_spinode/bin/activate
-# alias python="srun venv_spinode/bin/python"
+#module load jax
+#module load profile/deeplrn
+source jax_env/bin/activate
+#source venv_spinode/bin/activate
+## alias python="srun venv_spinode/bin/python"
 
 
 # proposed approach
 ## step 1: train MLP to fit nODE traj
-# python train_ode.py --config configs/spin.yaml --target rober_fit
+python train_ode.py --config configs/spin.yaml --target rober_fit
 # python train_ode.py --config configs/spin.yaml --target pollu_fit
 # python train_ode.py --config configs/spin.yaml --target toy_fit
 
