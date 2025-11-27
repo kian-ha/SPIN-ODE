@@ -178,12 +178,13 @@ class LogRateLaw(nnx.Module):
 
 def ode_solver(
         *,
-        solver = diffrax.Kvaerno3(solver=lineax.AutoLinearSolver(well_posed=False)),
+        solver = diffrax.Kvaerno3(),
         dt0 = None,
         adjoint = diffrax.RecursiveCheckpointAdjoint(checkpoints=8192),
         max_steps: int = 8192,
         stepsize_controller = diffrax.PIDController(rtol=1e-5, atol=1e-6),
         throw: bool = False,
+        root_finder=diffrax.VeryChord(rtol=1e-3, atol=1e-3),
     ) -> Callable[[Callable, jax.Array, jax.Array], jax.Array]:
     """
     Args:

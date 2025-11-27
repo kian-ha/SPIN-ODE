@@ -46,7 +46,7 @@ def forward(params, sim_cfg):
 
     sol = dfx.diffeqsolve(
             dfx.ODETerm(ode),
-            dfx.Kvaerno3(solver=lineax.AutoLinearSolver(well_posed=False)),
+            dfx.Kvaerno3(),
             t0=ts[0],
             t1=ts[-1],
             y0=y0,
@@ -55,6 +55,7 @@ def forward(params, sim_cfg):
             max_steps=8192,
             stepsize_controller=dfx.PIDController(rtol=1e-5, atol=1e-6),
             throw=True,
+            root_finder=dfx.VeryChord(rtol=1e-3, atol=1e-3),
             args=params,
         )
     return sol.ys
