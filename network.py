@@ -5,6 +5,7 @@ import jax.numpy as jnp
 from jax.typing import ArrayLike
 from flax import nnx
 import diffrax
+import lineax
 
 
 def SMSPELoss(pred, truth):
@@ -177,7 +178,7 @@ class LogRateLaw(nnx.Module):
 
 def ode_solver(
         *,
-        solver = diffrax.Kvaerno3(),
+        solver = diffrax.Kvaerno3(solver=lineax.AutoLinearSolver(well_posed=False)),
         dt0 = None,
         adjoint = diffrax.RecursiveCheckpointAdjoint(checkpoints=8192),
         max_steps: int = 8192,
