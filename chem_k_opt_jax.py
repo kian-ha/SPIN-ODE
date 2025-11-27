@@ -9,7 +9,6 @@ import diffrax as dfx
 import tqdm
 import matplotlib.pyplot as plt
 
-
 # Example reaction:
 # NO+O3 -> NO2: 0.266 * 10^2
 stoi_reac=jnp.asarray([[1,1,0]]).T  # reaction stoichiometric matrix
@@ -46,14 +45,14 @@ def forward(params, sim_cfg):
 
     sol = dfx.diffeqsolve(
             dfx.ODETerm(ode),
-            dfx.Kvaerno5(),
+            dfx.Kvaerno3(),
             t0=ts[0],
             t1=ts[-1],
             y0=y0,
             saveat=dfx.SaveAt(ts=ts),
             dt0=None,
             max_steps=8192,
-            stepsize_controller=dfx.PIDController(rtol=1e-6, atol=1e-7),
+            stepsize_controller=dfx.PIDController(rtol=1e-5, atol=1e-6),
             throw=True,
             args=params,
         )
