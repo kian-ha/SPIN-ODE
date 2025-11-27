@@ -183,8 +183,7 @@ def ode_solver(
         adjoint = diffrax.RecursiveCheckpointAdjoint(checkpoints=8192),
         max_steps: int = 8192,
         stepsize_controller = diffrax.PIDController(rtol=1e-5, atol=1e-6),
-        throw: bool = False,
-        root_finder=diffrax.VeryChord(rtol=1e-3, atol=1e-3),
+        throw: bool = False
     ) -> Callable[[Callable, jax.Array, jax.Array], jax.Array]:
     """
     Args:

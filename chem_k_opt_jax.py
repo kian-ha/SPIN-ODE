@@ -8,7 +8,7 @@ import jax.numpy as jnp
 import diffrax as dfx
 import tqdm
 import matplotlib.pyplot as plt
-import lineax
+
 
 # Example reaction:
 # NO+O3 -> NO2: 0.266 * 10^2
@@ -18,8 +18,8 @@ K = jnp.asarray([0.266e2])          # reaction rate coefficient
 ts = jnp.arange(0, 1, 0.1)          # time span
 y0 = jnp.asarray([0.2, 0.04, 0])    # initial concentration
 
-est_params = {
-    'k': K,
+log_est_params = {
+    'log_k': jnp.log(K),
 }
 fix_params = {
     'stoi_reac': stoi_reac,
@@ -30,7 +30,8 @@ sim_cfg = {
     'y0': y0,
 }
 
-def forward(params, sim_cfg):
+def forward(log_params, fix_params, sim_cfg):
+    """Forward pass that works with log-space parameters"""
     def ode(t, y, args):
         """reaction rate law"""
         k = args['k']
@@ -43,6 +44,13 @@ def forward(params, sim_cfg):
 
     ts = sim_cfg['ts']
     y0 = sim_cfg['y0']
+    
+    # Convert log parameters to normal space
+    params = {
+        'k': jnp.exp(log_params['log_k']),
+        'stoi_reac': fix_params['stoi_reac'],
+        'stoi_prod': fix_params['stoi_prod'],
+    }
 
     sol = dfx.diffeqsolve(
             dfx.ODETerm(ode),
@@ -54,14 +62,13 @@ def forward(params, sim_cfg):
             dt0=None,
             max_steps=8192,
             stepsize_controller=dfx.PIDController(rtol=1e-5, atol=1e-6),
-            throw=True,
-            root_finder=dfx.VeryChord(rtol=1e-3, atol=1e-3),
+            throw=False,
             args=params,
         )
     return sol.ys
 
 
-params = {**est_params, **fix_params}
+params = {**log_est_params, **fix_params}
 traj_measure = forward(params, sim_cfg)
 print(traj_measure)
 
@@ -78,13 +85,12 @@ def mse(prediction, target):
     return jnp.mean((prediction - target) ** 2)
 
 @jax.jit
-def loss_fn(estimated_params, fixed_params, sim_cfg, traj_measure):
-    params = {**estimated_params, **fixed_params}
-    traj_pred = forward(params, sim_cfg)
+def loss_fn(log_estimated_params, fixed_params, sim_cfg, traj_measure):
+    traj_pred = forward(log_estimated_params, fixed_params, sim_cfg)
     return mse(traj_pred, traj_measure)
 
 
-print("loss", loss_fn(est_params, fix_params, sim_cfg, traj_measure))
+print("loss", loss_fn(log_est_params, fix_params, sim_cfg, traj_measure))
 
 
 # - `jax.grad` transform a function so that it calculate the gradient w.r.t. (by default the 1st) input argument
@@ -94,7 +100,7 @@ print("loss", loss_fn(est_params, fix_params, sim_cfg, traj_measure))
 grad_fn = jax.grad(loss_fn)
 
 
-print("grads", grad_fn(est_params, fix_params, sim_cfg, traj_measure))
+print("grads", grad_fn(log_est_params, fix_params, sim_cfg, traj_measure))
 
 
 # ## Automatic vectorisation
@@ -107,7 +113,7 @@ print("grads", grad_fn(est_params, fix_params, sim_cfg, traj_measure))
 ks = jnp.logspace(jnp.log10(K*0.1), jnp.log10(K*10), 20)
 batched_est_params = jax.tree.map(
     lambda leaf: jnp.stack([leaf] * len(ks)),
-    est_params,
+    log_est_params,
 )
 batched_est_params['k'] = ks
 
@@ -149,17 +155,19 @@ fig.savefig("plots/demo_dL_dk.png", dpi=300)
 
 # ## Gradient-descent optimisation
 
-est_params['k'] = K * 0.1
-learning_rate = 1e5
+log_est_params['log_k'] = jnp.log(K * 0.1)
+learning_rate = 1.0  # Much smaller in log space!
 epoch = 1000
 
 print(f"ground truth: K={K}")
-print(f"before optimisation: {est_params}")
+print(f"before optimisation: k={jnp.exp(log_est_params['log_k'])}")
 bar = tqdm.tqdm(range(0, epoch), desc=f"Epochs", initial=0)
 
 for i in bar:
-    grads = grad_fn(est_params, fix_params, sim_cfg, traj_measure)
-    est_params['k'] = est_params['k'] - grads['k'] * learning_rate
-    bar.set_postfix({'k0': f"{float(jnp.squeeze(est_params['k'])):.4e}"})
+    grads = grad_fn(log_est_params, fix_params, sim_cfg, traj_measure)
+    log_est_params['log_k'] = log_est_params['log_k'] - grads['log_k'] * learning_rate
+    
+    current_k = jnp.exp(log_est_params['log_k'])
+    bar.set_postfix({'k0': f"{float(jnp.squeeze(current_k)):.4e}"})
 
-print(f"after optimisation: {est_params}")
+print(f"after optimisation: k={jnp.exp(log_est_params['log_k'])}")
